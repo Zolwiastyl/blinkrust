@@ -4,3 +4,7 @@ runner = "elf2uf2-rs -d"
 
 [build]
 target = "thumbv6m-none-eabi"
+
+rustflags = [
+"-C", "link-arg=-Tlink.x",
+]

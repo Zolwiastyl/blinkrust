@@ -9,6 +9,7 @@
 #![no_std]
 #![no_main]
 
+use embedded_hal::adc::OneShot;
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
 use panic_halt as _;
@@ -21,7 +22,8 @@ use rp2040_hal as hal;
 use hal::pac;
 
 // Some traits we need
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::digital::v2::{InputPin, OutputPin};
+use rp2040_hal::adc::Adc;
 use rp2040_hal::clocks::Clock;
 
 /// The linker will place this boot block at the start of our program image. We
@@ -80,12 +82,53 @@ fn main() -> ! {
 
     // Configure GPIO25 as an output
     let mut led_pin = pins.gpio25.into_push_pull_output();
+    let mut external_led_pin = pins.gpio28.into_push_pull_output();
+    let mut buzzer = pins.gpio18.into_push_pull_output();
+    let mut button1 = pins.gpio20.into_pull_up_input();
+
+    // let photoresistor = pins.gpio13.into_floating_input();
+    let mut adc = Adc::new(pac.ADC, &mut pac.RESETS);
+    let mut adc_pin_0 = pins.gpio26.into_floating_input();
     loop {
-        led_pin.set_high().unwrap();
-        // TODO: Replace with proper 1s delays once we have clocks working
-        delay.delay_ms(500);
-        led_pin.set_low().unwrap();
-        delay.delay_ms(500);
+        let v0: u128 = adc.read(&mut adc_pin_0).unwrap();
+        if v0 > 100 {
+            led_pin.set_high().unwrap();
+            delay.delay_ms(1000);
+            led_pin.set_low().unwrap();
+            delay.delay_ms(1000);
+        } else if v0 == 0 {
+            buzzer.set_high().unwrap();
+            delay.delay_ms(600);
+            buzzer.set_low().unwrap();
+        } else {
+            external_led_pin.set_high().unwrap();
+            delay.delay_ms(1000);
+            external_led_pin.set_low().unwrap();
+            delay.delay_ms(1000);
+        }
+        // turn the LED on
+        if button1.is_low().unwrap() {
+            delay.delay_ms(500);
+
+            led_pin.set_high().unwrap();
+            // let pinStrength = external_led_pin.get_drive_strength();
+            // TODO: Replace with proper 1s delays once we have clocks working
+            external_led_pin.set_low().unwrap();
+            delay.delay_ms(100);
+
+            // turn the LED off
+            external_led_pin.set_high().unwrap();
+            led_pin.set_low().unwrap();
+            delay.delay_ms(100);
+            buzzer.set_high().unwrap();
+            delay.delay_ms(600);
+            buzzer.set_low().unwrap();
+            delay.delay_ms(2000);
+            buzzer.set_high().unwrap();
+            delay.delay_ms(600);
+            buzzer.set_low().unwrap();
+            delay.delay_ms(2000);
+        }
     }
 }
 
