@@ -23,6 +23,7 @@ use hal::pac;
 
 // Some traits we need
 use embedded_hal::digital::v2::{InputPin, OutputPin};
+use log::info;
 use rp2040_hal::adc::Adc;
 use rp2040_hal::clocks::Clock;
 
@@ -84,7 +85,7 @@ fn main() -> ! {
     let mut led_pin = pins.gpio25.into_push_pull_output();
     let mut external_led_pin = pins.gpio28.into_push_pull_output();
     let mut buzzer = pins.gpio18.into_push_pull_output();
-    let mut button1 = pins.gpio20.into_pull_up_input();
+    let button1 = pins.gpio20.into_pull_up_input();
 
     // let photoresistor = pins.gpio13.into_floating_input();
     let mut adc = Adc::new(pac.ADC, &mut pac.RESETS);
@@ -92,6 +93,7 @@ fn main() -> ! {
     loop {
         let v0: u128 = adc.read(&mut adc_pin_0).unwrap();
         if v0 > 100 {
+            info!("low");
             led_pin.set_high().unwrap();
             delay.delay_ms(1000);
             led_pin.set_low().unwrap();
@@ -101,6 +103,7 @@ fn main() -> ! {
             delay.delay_ms(600);
             buzzer.set_low().unwrap();
         } else {
+            info!("high");
             external_led_pin.set_high().unwrap();
             delay.delay_ms(1000);
             external_led_pin.set_low().unwrap();
@@ -131,5 +134,3 @@ fn main() -> ! {
         }
     }
 }
-
-// End of file
